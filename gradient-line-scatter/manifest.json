@@ -6,6 +6,7 @@
   "dependencies": [
     "https://d3js.org/d3.v7.min.js"
   ],
+  "file": "index.js",
   "options": {
     "plot_style": {
       "type": "string",
