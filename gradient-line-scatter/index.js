@@ -1,621 +1,630 @@
 looker.plugins.visualizations.add({
-  id: 'gradient_line_scatter',
-  label: 'Gradient Line/Scatter',
+  // Visualization metadata
+  id: "gradient_line_scatter",
+  label: "Gradient Line/Scatter",
+  
+  // Configuration options
   options: {
-    plot_style: {
-      type: 'string',
-      label: 'Plot Style',
-      values: [
-        {'Line': 'line'},
-        {'Line with Dots': 'line_with_dots'},
-        {'Dots Only': 'dots'}
-      ],
-      default: 'line_with_dots',
-      order: 1
+    plot: {
+      type: "object",
+      label: "Plot",
+      display: "section",
+      properties: {
+        style: {
+          type: "string",
+          label: "Style",
+          display: "select",
+          values: [
+            {"Line": "line"},
+            {"Line And Dots": "line_with_dots"},
+            {"Dots": "dots"}
+          ],
+          default: "line"
+        },
+        plot_null_values: {
+          type: "boolean",
+          label: "Plot Null Values",
+          default: false
+        },
+        color_min: {
+          type: "string",
+          label: "Minimum Color",
+          display: "color",
+          default: "#00ff00"
+        },
+        color_mid: {
+          type: "string",
+          label: "Midpoint Color (Optional)",
+          display: "color",
+          default: "#ffff00"
+        },
+        color_max: {
+          type: "string",
+          label: "Maximum Color",
+          display: "color",
+          default: "#ff0000"
+        },
+        min_value: {
+          type: "number",
+          label: "Minimum Value",
+          default: null
+        },
+        max_value: {
+          type: "number",
+          label: "Maximum Value",
+          default: null
+        }
+      }
     },
-    gradient_mode: {
-      type: 'string', 
-      label: 'Gradient Mode',
-      values: [
-        {'Auto': 'auto'},
-        {'Thresholds': 'thresholds'}
-      ],
-      default: 'auto',
-      order: 2
+    x_axis: {
+      type: "object",
+      label: "X",
+      display: "section",
+      properties: {
+        show_axis_name: {
+          type: "boolean",
+          label: "Show Axis Name",
+          default: true
+        },
+        custom_axis_name: {
+          type: "string",
+          label: "Custom Axis Name",
+          default: ""
+        },
+        gridlines: {
+          type: "boolean",
+          label: "Gridlines",
+          default: false
+        }
+      }
     },
-    color_min: {
-      type: 'string',
-      label: 'Minimum Color',
-      default: '#3b82f6',
-      placeholder: '#3b82f6',
-      order: 3
-    },
-    color_mid: {
-      type: 'string',
-      label: 'Midpoint Color (optional)',
-      default: '',
-      placeholder: 'Leave empty for linear gradient',
-      order: 4
-    },
-    color_max: {
-      type: 'string',
-      label: 'Maximum Color', 
-      default: '#f59e0b',
-      placeholder: '#f59e0b',
-      order: 5
-    },
-    t_low: {
-      type: 'number',
-      label: 'Low Threshold',
-      default: 0,
-      order: 6
-    },
-    t_high: {
-      type: 'number',
-      label: 'High Threshold', 
-      default: 100,
-      order: 7
-    },
-    line_width: {
-      type: 'number',
-      label: 'Line Width',
-      default: 2,
-      min: 0.5,
-      max: 10,
-      step: 0.5,
-      order: 8
-    },
-    point_radius: {
-      type: 'number',
-      label: 'Point Radius',
-      default: 2.5,
-      min: 1,
-      max: 10,
-      step: 0.5,
-      order: 9
-    },
-    show_colorbar: {
-      type: 'boolean',
-      label: 'Show Color Legend',
-      default: true,
-      order: 10
+    y_axis: {
+      type: "object",
+      label: "Y",
+      display: "section",
+      properties: {
+        show_axis_name: {
+          type: "boolean",
+          label: "Show Axis Name",
+          default: true
+        },
+        custom_axis_name: {
+          type: "string",
+          label: "Custom Axis Name",
+          default: ""
+        },
+        gridlines: {
+          type: "boolean",
+          label: "Gridlines",
+          default: true
+        },
+        unpin_axis_from_zero: {
+          type: "boolean",
+          label: "Unpin Axis From Zero",
+          default: false
+        },
+        min_value: {
+          type: "number",
+          label: "Minimum Value",
+          default: null
+        },
+        max_value: {
+          type: "number",
+          label: "Maximum Value",
+          default: null
+        }
+      }
     }
   },
 
+  // Create the visualization
   create: function(element, config) {
-    // Create container div
-    element.innerHTML = '<div id="gradient-line-scatter"></div>';
-    this.container = element.querySelector('#gradient-line-scatter');
-    this.container.style.width = '100%';
-    this.container.style.height = '100%';
-    this.container.style.position = 'relative';
+    // Create container
+    this.container = d3.select(element)
+      .style("font-family", "Roboto, 'Noto Sans', 'Noto Sans JP', 'Noto Sans CJK KR', 'Noto Sans Arabic UI', 'Noto Sans Devanagari UI', 'Noto Sans Hebrew', 'Noto Sans Thai UI', Helvetica, Arial, sans-serif")
+      .style("font-size", "12px")
+      .style("color", "#262D33")
+      .style("background-color", "white");
   },
 
+  // Update the visualization
   updateAsync: function(data, element, config, queryResponse, details, done) {
     try {
-      this.clearError();
-      
+      // Clear previous content
+      this.container.selectAll("*").remove();
+
       // Validate data structure
       const validation = this.validateData(data, queryResponse);
-      if (!validation.valid) {
+      if (!validation.isValid) {
         this.showError(validation.message);
         done();
         return;
       }
 
-      // Process data
+      // Extract and process data
       const processedData = this.processData(data, queryResponse, config);
-      
-      // Show warnings if needed
-      if (validation.warnings.length > 0) {
-        this.showWarnings(validation.warnings);
+      if (processedData.length === 0) {
+        this.showMessage("No data to display");
+        done();
+        return;
       }
 
-      // Render visualization
-      this.render(processedData, config, element);
-      
+      // Set up dimensions and scales
+      const dimensions = this.setupDimensions(element);
+      const scales = this.setupScales(processedData, dimensions, config);
+
+      // Create SVG
+      const svg = this.createSVG(dimensions);
+
+      // Draw gridlines if enabled
+      this.drawGridlines(svg, scales, dimensions, config);
+
+      // Draw axes
+      this.drawAxes(svg, scales, dimensions, config, queryResponse);
+
+      // Draw the plot
+      this.drawPlot(svg, processedData, scales, config);
+
+      // Draw color legend
+      this.drawColorLegend(svg, scales.color, dimensions, config);
+
+      // Add tooltip
+      this.addTooltip(svg, processedData, scales, config, queryResponse);
+
       done();
     } catch (error) {
-      this.showError('Error rendering visualization: ' + error.message);
+      console.error("Error in updateAsync:", error);
+      this.showError("An error occurred while rendering the visualization");
       done();
     }
   },
 
+  // Validate data structure
   validateData: function(data, queryResponse) {
     const dimensions = queryResponse.fields.dimension_like;
     const measures = queryResponse.fields.measure_like;
-    const pivots = queryResponse.fields.pivots || [];
-    
-    const warnings = [];
-    
+    const pivots = queryResponse.fields.pivots;
+
     // Check for pivots
-    if (pivots.length > 0) {
+    if (pivots && pivots.length > 0) {
       return {
-        valid: false,
-        message: 'This visualization does not support pivoted data. Please remove pivots from your query.',
-        warnings: []
+        isValid: false,
+        message: "This visualization does not support pivoted data"
       };
     }
-    
+
     // Check dimensions
-    if (dimensions.length === 0) {
+    if (dimensions.length !== 1) {
       return {
-        valid: false,
-        message: 'This visualization requires exactly one dimension for the x-axis.',
-        warnings: []
+        isValid: false,
+        message: "This visualization requires exactly one dimension"
       };
     }
-    
-    if (dimensions.length > 1) {
-      warnings.push('Multiple dimensions detected. Only the first dimension will be used for the x-axis.');
-    }
-    
+
     // Check measures
-    if (measures.length === 0) {
+    if (measures.length < 1 || measures.length > 2) {
       return {
-        valid: false,
-        message: 'This visualization requires at least one measure.',
-        warnings: []
+        isValid: false,
+        message: "This visualization requires one or two measures"
       };
     }
-    
-    if (measures.length > 2) {
-      warnings.push('More than two measures detected. Only the first two measures will be used.');
-    }
-    
-    return {
-      valid: true,
-      message: '',
-      warnings: warnings
-    };
+
+    return { isValid: true };
   },
 
+  // Process raw data into visualization format
   processData: function(data, queryResponse, config) {
-    const dimensions = queryResponse.fields.dimension_like;
-    const measures = queryResponse.fields.measure_like;
-    
-    const xField = dimensions[0].name;
-    const yField = measures[0].name;
-    const colorField = measures.length > 1 ? measures[1].name : yField;
-    
-    // Auto-detect if x-axis is time-based
-    const xFieldInfo = dimensions[0];
-    const isTimeField = this.isTimeField(xFieldInfo);
-    
-    const points = data.map(row => {
-      let x = row[xField].value;
-      const y = parseFloat(row[yField].value) || 0;
-      const c = parseFloat(row[colorField].value) || 0;
-      
-      // Parse x value based on auto-detection
-      if (isTimeField) {
-        x = new Date(x);
-        if (isNaN(x.getTime())) {
-          // Try parsing common date formats
-          x = this.parseDate(row[xField].value);
-          if (!x) {
-            x = row[xField].value; // fallback to string
-          }
-        }
-      } else {
-        const numX = parseFloat(x);
-        if (!isNaN(numX)) {
-          x = numX;
-        }
-        // else keep as string for ordinal scale
-      }
-      
-      return { x, y, c, isTimeField };
-    }).filter(d => d.y !== null && d.c !== null);
-    
-    // Downsample if too many points
-    if (points.length > 20000) {
-      const step = Math.ceil(points.length / 20000);
-      return points.filter((_, i) => i % step === 0);
-    }
-    
-    return points;
-  },
+    const dimensionName = queryResponse.fields.dimension_like[0].name;
+    const firstMeasureName = queryResponse.fields.measure_like[0].name;
+    const secondMeasureName = queryResponse.fields.measure_like[1]?.name;
 
-  isTimeField: function(fieldInfo) {
-    // Check Looker field type indicators
-    const fieldType = fieldInfo.type || '';
-    const fieldName = fieldInfo.name || '';
-    const fieldLabel = fieldInfo.label_short || fieldInfo.label || '';
-    
-    // Common time field types in Looker
-    const timeTypes = [
-      'date', 'datetime', 'timestamp', 'time',
-      'date_time', 'date_date', 'date_week', 'date_month', 
-      'date_quarter', 'date_year', 'duration'
-    ];
-    
-    // Check if field type indicates time
-    if (timeTypes.some(type => fieldType.toLowerCase().includes(type))) {
-      return true;
-    }
-    
-    // Check field name patterns
-    const timePatterns = [
-      /date/i, /time/i, /created/i, /updated/i, /timestamp/i,
-      /_at$/i, /_date$/i, /_time$/i, /year/i, /month/i, /day/i
-    ];
-    
-    if (timePatterns.some(pattern => pattern.test(fieldName) || pattern.test(fieldLabel))) {
-      return true;
-    }
-    
-    return false;
-  },
+    const processedData = [];
 
-  parseDate: function(value) {
-    if (!value) return null;
-    
-    // Try common date formats
-    const formats = [
-      // ISO formats
-      /^\d{4}-\d{2}-\d{2}$/,
-      /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/,
-      // US formats
-      /^\d{1,2}\/\d{1,2}\/\d{4}$/,
-      /^\d{1,2}-\d{1,2}-\d{4}$/,
-      // Other common formats
-      /^\d{4}\/\d{2}\/\d{2}$/,
-      /^\d{2}\/\d{2}\/\d{4}$/
-    ];
-    
-    for (let format of formats) {
-      if (format.test(value)) {
-        const date = new Date(value);
-        if (!isNaN(date.getTime())) {
-          return date;
+    data.forEach(row => {
+      let xValue = row[dimensionName].value;
+      let yValue = row[firstMeasureName].value;
+      let colorValue = secondMeasureName ? row[secondMeasureName].value : yValue;
+
+      // Handle null values
+      if (yValue === null) {
+        if (config.plot && config.plot.plot_null_values) {
+          yValue = 0;
+        } else {
+          return; // Skip this point
         }
       }
-    }
-    
-    return null;
+
+      if (colorValue === null) {
+        if (config.plot && config.plot.plot_null_values) {
+          colorValue = 0;
+        } else {
+          return; // Skip this point
+        }
+      }
+
+      // Try to parse x value as date, then number, fall back to string
+      let parsedX = xValue;
+      const dateValue = new Date(xValue);
+      if (!isNaN(dateValue.getTime()) && typeof xValue === 'string' && xValue.match(/\d{4}-\d{2}-\d{2}/)) {
+        parsedX = dateValue;
+      } else if (!isNaN(parseFloat(xValue))) {
+        parsedX = parseFloat(xValue);
+      }
+
+      processedData.push({
+        x: parsedX,
+        y: parseFloat(yValue),
+        c: parseFloat(colorValue),
+        originalX: xValue,
+        originalY: yValue,
+        originalC: colorValue
+      });
+    });
+
+    return processedData;
   },
 
-  render: function(data, config, element) {
-    if (data.length === 0) {
-      this.showError('No data to display');
-      return;
-    }
+  // Setup chart dimensions
+  setupDimensions: function(element) {
+    const margin = { top: 20, right: 120, bottom: 60, left: 60 };
+    const width = element.clientWidth - margin.left - margin.right;
+    const height = element.clientHeight - margin.top - margin.bottom;
 
-    // Clear previous content
-    d3.select(this.container).selectAll('*').remove();
-    
-    // Set up dimensions
-    const margin = { 
-      top: 20, 
-      right: config.show_colorbar ? 100 : 20, 
-      bottom: 60, 
-      left: 80 
-    };
-    
-    const containerRect = this.container.getBoundingClientRect();
-    const width = containerRect.width - margin.left - margin.right;
-    const height = containerRect.height - margin.top - margin.bottom;
-    
-    if (width <= 0 || height <= 0) return;
-    
-    // Create SVG
-    const svg = d3.select(this.container)
-      .append('svg')
-      .attr('width', containerRect.width)
-      .attr('height', containerRect.height)
-      .style('background-color', 'transparent');
-    
-    const g = svg.append('g')
-      .attr('transform', `translate(${margin.left},${margin.top})`);
-    
-    // Set up scales
-    const scales = this.createScales(data, config, width, height);
-    
-    // Create color scale
-    const colorScale = this.createColorScale(data, config);
-    
-    // Create axes
-    this.createAxes(g, scales, width, height);
-    
-    // Create tooltip
-    const tooltip = this.createTooltip();
-    
-    // Render plot based on style
-    this.renderPlot(g, data, scales, colorScale, config, tooltip);
-    
-    // Render colorbar
-    if (config.show_colorbar) {
-      this.renderColorbar(svg, colorScale, config, margin, height);
-    }
+    return { margin, width, height };
   },
 
-  createScales: function(data, config, width, height) {
-    const xValues = data.map(d => d.x);
-    const yValues = data.map(d => d.y);
-    
-    // Use the auto-detected time field information
-    const isTimeField = data.length > 0 && data[0].isTimeField;
-    
+  // Setup scales
+  setupScales: function(data, dimensions, config) {
+    // Determine x scale type
     let xScale;
-    if (isTimeField && xValues[0] instanceof Date) {
+    const firstX = data[0]?.x;
+    
+    if (firstX instanceof Date) {
       xScale = d3.scaleUtc()
-        .domain(d3.extent(xValues))
-        .range([0, width]);
-    } else if (typeof xValues[0] === 'number') {
+        .domain(d3.extent(data, d => d.x))
+        .range([0, dimensions.width]);
+    } else if (typeof firstX === 'number') {
       xScale = d3.scaleLinear()
-        .domain(d3.extent(xValues))
-        .range([0, width]);
+        .domain(d3.extent(data, d => d.x))
+        .range([0, dimensions.width]);
     } else {
       xScale = d3.scalePoint()
-        .domain(xValues.map(String))
-        .range([0, width])
+        .domain(data.map(d => d.x))
+        .range([0, dimensions.width])
         .padding(0.1);
     }
-    
-    const yScale = d3.scaleLinear()
-      .domain(d3.extent(yValues))
-      .nice()
-      .range([height, 0]);
-    
-    return { xScale, yScale };
-  },
 
-  createColorScale: function(data, config) {
-    const colorValues = data.map(d => d.c);
-    const colorMin = config.color_min || '#3b82f6';
-    const colorMax = config.color_max || '#f59e0b';
-    const colorMid = config.color_mid || '';
-    
-    let domain, range;
-    
-    if (config.gradient_mode === 'thresholds') {
-      if (colorMid) {
-        domain = [config.t_low, (config.t_low + config.t_high) / 2, config.t_high];
-        range = [colorMin, colorMid, colorMax];
-        return d3.scaleLinear().domain(domain).range(range);
-      } else {
-        domain = [config.t_low, config.t_high];
-        range = [colorMin, colorMax];
-        return d3.scaleLinear().domain(domain).range(range);
-      }
+    // Y scale
+    let yDomain;
+    if (config.y_axis && config.y_axis.min_value !== null && config.y_axis.max_value !== null) {
+      yDomain = [config.y_axis.min_value, config.y_axis.max_value];
     } else {
-      const extent = d3.extent(colorValues);
-      if (colorMid) {
-        domain = [extent[0], (extent[0] + extent[1]) / 2, extent[1]];
-        range = [colorMin, colorMid, colorMax];
-        return d3.scaleLinear().domain(domain).range(range);
+      const yExtent = d3.extent(data, d => d.y);
+      if (config.y_axis && config.y_axis.unpin_axis_from_zero) {
+        yDomain = yExtent;
       } else {
-        domain = extent;
-        range = [colorMin, colorMax];
-        return d3.scaleLinear().domain(domain).range(range);
+        yDomain = [0, yExtent[1]];
+      }
+      
+      // Apply manual min/max if specified
+      if (config.y_axis && config.y_axis.min_value !== null) {
+        yDomain[0] = config.y_axis.min_value;
+      }
+      if (config.y_axis && config.y_axis.max_value !== null) {
+        yDomain[1] = config.y_axis.max_value;
       }
     }
-  },
 
-  createAxes: function(g, scales, width, height) {
-    // Create gridlines
-    g.append('g')
-      .attr('class', 'grid')
-      .attr('transform', `translate(0,${height})`)
-      .call(d3.axisBottom(scales.xScale)
-        .tickSize(-height)
-        .tickFormat('')
-      )
-      .style('stroke-dasharray', '3,3')
-      .style('opacity', 0.3);
-    
-    g.append('g')
-      .attr('class', 'grid')
-      .call(d3.axisLeft(scales.yScale)
-        .tickSize(-width)
-        .tickFormat('')
-      )
-      .style('stroke-dasharray', '3,3')
-      .style('opacity', 0.3);
-    
-    // Create axes
-    g.append('g')
-      .attr('class', 'x-axis')
-      .attr('transform', `translate(0,${height})`)
-      .call(d3.axisBottom(scales.xScale))
-      .style('color', '#e5e7eb');
-    
-    g.append('g')
-      .attr('class', 'y-axis')
-      .call(d3.axisLeft(scales.yScale))
-      .style('color', '#e5e7eb');
-    
-    // Style axes
-    g.selectAll('.domain, .tick line')
-      .style('stroke', '#6b7280');
-    
-    g.selectAll('.tick text')
-      .style('fill', '#e5e7eb');
-  },
+    const yScale = d3.scaleLinear()
+      .domain(yDomain)
+      .range([dimensions.height, 0]);
 
-  createTooltip: function() {
-    return d3.select('body').append('div')
-      .attr('class', 'gradient-tooltip')
-      .style('position', 'absolute')
-      .style('background', 'rgba(0, 0, 0, 0.8)')
-      .style('color', 'white')
-      .style('padding', '8px')
-      .style('border-radius', '4px')
-      .style('font-size', '12px')
-      .style('pointer-events', 'none')
-      .style('opacity', 0)
-      .style('z-index', 1000);
-  },
-
-  renderPlot: function(g, data, scales, colorScale, config, tooltip) {
-    const lineWidth = config.line_width || 2;
-    const pointRadius = config.point_radius || 2.5;
+    // Color scale
+    let colorScale;
+    const colorExtent = d3.extent(data, d => d.c);
+    let colorDomain = colorExtent;
     
-    // Render lines
-    if (config.plot_style === 'line' || config.plot_style === 'line_with_dots') {
-      this.renderLines(g, data, scales, colorScale, lineWidth);
+    // Apply manual color min/max if specified
+    if (config.plot && config.plot.min_value !== null) {
+      colorDomain[0] = config.plot.min_value;
     }
-    
-    // Render points
-    if (config.plot_style === 'dots' || config.plot_style === 'line_with_dots') {
-      this.renderPoints(g, data, scales, colorScale, pointRadius, tooltip);
+    if (config.plot && config.plot.max_value !== null) {
+      colorDomain[1] = config.plot.max_value;
+    }
+
+    const colorMin = (config.plot && config.plot.color_min) || "#00ff00";
+    const colorMid = (config.plot && config.plot.color_mid) || "#ffff00";
+    const colorMax = (config.plot && config.plot.color_max) || "#ff0000";
+
+    if (colorMid && colorMid.trim() !== "") {
+      const midpoint = (colorDomain[0] + colorDomain[1]) / 2;
+      colorScale = d3.scaleDiverging()
+        .domain([colorDomain[0], midpoint, colorDomain[1]])
+        .range([colorMin, colorMid, colorMax]);
+    } else {
+      colorScale = d3.scaleLinear()
+        .domain(colorDomain)
+        .range([colorMin, colorMax]);
+    }
+
+    return { x: xScale, y: yScale, color: colorScale };
+  },
+
+  // Create SVG element
+  createSVG: function(dimensions) {
+    const svg = this.container
+      .append("svg")
+      .attr("width", dimensions.width + dimensions.margin.left + dimensions.margin.right)
+      .attr("height", dimensions.height + dimensions.margin.top + dimensions.margin.bottom);
+
+    const g = svg.append("g")
+      .attr("transform", `translate(${dimensions.margin.left},${dimensions.margin.top})`);
+
+    return g;
+  },
+
+  // Draw gridlines
+  drawGridlines: function(svg, scales, dimensions, config) {
+    // Vertical gridlines (X)
+    if (config.x_axis && config.x_axis.gridlines) {
+      svg.append("g")
+        .attr("class", "grid")
+        .selectAll("line")
+        .data(scales.x.ticks ? scales.x.ticks() : scales.x.domain())
+        .enter()
+        .append("line")
+        .attr("x1", d => scales.x(d))
+        .attr("x2", d => scales.x(d))
+        .attr("y1", 0)
+        .attr("y2", dimensions.height)
+        .attr("stroke", "#e0e0e0")
+        .attr("stroke-width", 1);
+    }
+
+    // Horizontal gridlines (Y)
+    if (config.y_axis && config.y_axis.gridlines) {
+      svg.append("g")
+        .attr("class", "grid")
+        .selectAll("line")
+        .data(scales.y.ticks())
+        .enter()
+        .append("line")
+        .attr("x1", 0)
+        .attr("x2", dimensions.width)
+        .attr("y1", d => scales.y(d))
+        .attr("y2", d => scales.y(d))
+        .attr("stroke", "#e0e0e0")
+        .attr("stroke-width", 1);
     }
   },
 
-  renderLines: function(g, data, scales, colorScale, lineWidth) {
-    const lineGroup = g.append('g').attr('class', 'lines');
-    
+  // Draw axes
+  drawAxes: function(svg, scales, dimensions, config, queryResponse) {
+    // X axis
+    const xAxis = d3.axisBottom(scales.x);
+    svg.append("g")
+      .attr("transform", `translate(0,${dimensions.height})`)
+      .call(xAxis)
+      .selectAll("text")
+      .style("font-size", "12px")
+      .style("fill", "#262D33");
+
+    // X axis label
+    if (config.x_axis && config.x_axis.show_axis_name) {
+      const xLabel = (config.x_axis.custom_axis_name && config.x_axis.custom_axis_name.trim() !== "") 
+        ? config.x_axis.custom_axis_name 
+        : queryResponse.fields.dimension_like[0].label_short;
+      
+      svg.append("text")
+        .attr("transform", `translate(${dimensions.width / 2}, ${dimensions.height + 40})`)
+        .style("text-anchor", "middle")
+        .style("font-size", "12px")
+        .style("fill", "#262D33")
+        .text(xLabel);
+    }
+
+    // Y axis
+    const yAxis = d3.axisLeft(scales.y);
+    svg.append("g")
+      .call(yAxis)
+      .selectAll("text")
+      .style("font-size", "12px")
+      .style("fill", "#262D33");
+
+    // Y axis label
+    if (config.y_axis && config.y_axis.show_axis_name) {
+      const yLabel = (config.y_axis.custom_axis_name && config.y_axis.custom_axis_name.trim() !== "") 
+        ? config.y_axis.custom_axis_name 
+        : queryResponse.fields.measure_like[0].label_short;
+      
+      svg.append("text")
+        .attr("transform", "rotate(-90)")
+        .attr("y", 0 - 40)
+        .attr("x", 0 - (dimensions.height / 2))
+        .style("text-anchor", "middle")
+        .style("font-size", "12px")
+        .style("fill", "#262D33")
+        .text(yLabel);
+    }
+  },
+
+  // Draw the main plot
+  drawPlot: function(svg, data, scales, config) {
+    const plotStyle = (config.plot && config.plot.style) || "line";
+
+    // Draw line if needed
+    if (plotStyle === "line" || plotStyle === "line_with_dots") {
+      this.drawLine(svg, data, scales);
+    }
+
+    // Draw dots if needed
+    if (plotStyle === "dots" || plotStyle === "line_with_dots") {
+      this.drawDots(svg, data, scales);
+    }
+  },
+
+  // Draw line with gradient segments
+  drawLine: function(svg, data, scales) {
+    const line = d3.line()
+      .x(d => scales.x(d.x))
+      .y(d => scales.y(d.y))
+      .curve(d3.curveLinear);
+
+    // Create line segments with individual colors
     for (let i = 0; i < data.length - 1; i++) {
       const d1 = data[i];
       const d2 = data[i + 1];
       
-      // Average color for segment
-      const avgColor = colorScale((d1.c + d2.c) / 2);
+      // Average color for the segment
+      const avgColor = d3.interpolate(scales.color(d1.c), scales.color(d2.c))(0.5);
       
-      lineGroup.append('line')
-        .attr('x1', scales.xScale(d1.x))
-        .attr('y1', scales.yScale(d1.y))
-        .attr('x2', scales.xScale(d2.x))
-        .attr('y2', scales.yScale(d2.y))
-        .attr('stroke', avgColor)
-        .attr('stroke-width', lineWidth)
-        .attr('stroke-linecap', 'round');
+      svg.append("path")
+        .datum([d1, d2])
+        .attr("fill", "none")
+        .attr("stroke", avgColor)
+        .attr("stroke-width", 2)
+        .attr("stroke-linecap", "round")
+        .attr("d", line);
     }
   },
 
-  renderPoints: function(g, data, scales, colorScale, pointRadius, tooltip) {
-    g.selectAll('.point')
+  // Draw dots
+  drawDots: function(svg, data, scales) {
+    svg.selectAll(".dot")
       .data(data)
       .enter()
-      .append('circle')
-      .attr('class', 'point')
-      .attr('cx', d => scales.xScale(d.x))
-      .attr('cy', d => scales.yScale(d.y))
-      .attr('r', pointRadius)
-      .attr('fill', d => colorScale(d.c))
-      .attr('stroke', 'white')
-      .attr('stroke-width', 0.5)
-      .style('cursor', 'pointer')
-      .on('mouseover', function(event, d) {
-        tooltip.transition().duration(200).style('opacity', 1);
-        tooltip.html(`X: ${d.x}<br/>Y: ${d.y}<br/>Color: ${d.c}`)
-          .style('left', (event.pageX + 10) + 'px')
-          .style('top', (event.pageY - 10) + 'px');
+      .append("circle")
+      .attr("class", "dot")
+      .attr("cx", d => scales.x(d.x))
+      .attr("cy", d => scales.y(d.y))
+      .attr("r", 4)
+      .attr("fill", d => scales.color(d.c))
+      .attr("stroke", "white")
+      .attr("stroke-width", 1);
+  },
+
+  // Draw color legend
+  drawColorLegend: function(svg, colorScale, dimensions, config) {
+    const legendWidth = 20;
+    const legendHeight = 200;
+    const legendX = dimensions.width + 20;
+    const legendY = (dimensions.height - legendHeight) / 2;
+
+    // Create gradient definition
+    const defs = svg.append("defs");
+    const gradient = defs.append("linearGradient")
+      .attr("id", "color-gradient")
+      .attr("x1", "0%")
+      .attr("y1", "100%")
+      .attr("x2", "0%")
+      .attr("y2", "0%");
+
+    // Add gradient stops
+    const domain = colorScale.domain();
+    const numStops = 10;
+    
+    for (let i = 0; i <= numStops; i++) {
+      const t = i / numStops;
+      const value = domain[0] + t * (domain[domain.length - 1] - domain[0]);
+      gradient.append("stop")
+        .attr("offset", `${t * 100}%`)
+        .attr("stop-color", colorScale(value));
+    }
+
+    // Draw legend rectangle
+    svg.append("rect")
+      .attr("x", legendX)
+      .attr("y", legendY)
+      .attr("width", legendWidth)
+      .attr("height", legendHeight)
+      .style("fill", "url(#color-gradient)")
+      .style("stroke", "#ccc")
+      .style("stroke-width", 1);
+
+    // Add legend scale
+    const legendScale = d3.scaleLinear()
+      .domain(domain)
+      .range([legendHeight, 0]);
+
+    const legendAxis = d3.axisRight(legendScale)
+      .ticks(5);
+
+    svg.append("g")
+      .attr("transform", `translate(${legendX + legendWidth}, ${legendY})`)
+      .call(legendAxis)
+      .selectAll("text")
+      .style("font-size", "10px")
+      .style("fill", "#262D33");
+  },
+
+  // Add tooltip functionality
+  addTooltip: function(svg, data, scales, config, queryResponse) {
+    // Create tooltip div
+    const tooltip = d3.select("body").append("div")
+      .attr("class", "tooltip")
+      .style("opacity", 0)
+      .style("position", "absolute")
+      .style("background", "rgba(0, 0, 0, 0.8)")
+      .style("color", "white")
+      .style("padding", "8px")
+      .style("border-radius", "4px")
+      .style("font-size", "12px")
+      .style("pointer-events", "none")
+      .style("z-index", "1000");
+
+    // Add invisible circles for tooltip interaction
+    svg.selectAll(".tooltip-target")
+      .data(data)
+      .enter()
+      .append("circle")
+      .attr("class", "tooltip-target")
+      .attr("cx", d => scales.x(d.x))
+      .attr("cy", d => scales.y(d.y))
+      .attr("r", 8)
+      .attr("fill", "transparent")
+      .on("mouseover", function(event, d) {
+        const dimensionLabel = queryResponse.fields.dimension_like[0].label_short;
+        const firstMeasureLabel = queryResponse.fields.measure_like[0].label_short;
+        const secondMeasureLabel = queryResponse.fields.measure_like[1]?.label_short;
+
+        let tooltipText = `${dimensionLabel}: ${d.originalX}<br>${firstMeasureLabel}: ${d.originalY}`;
+        
+        if (secondMeasureLabel) {
+          tooltipText += `<br>${secondMeasureLabel}: ${d.originalC}`;
+        }
+
+        tooltip.transition()
+          .duration(200)
+          .style("opacity", .9);
+        
+        tooltip.html(tooltipText)
+          .style("left", (event.pageX + 10) + "px")
+          .style("top", (event.pageY - 28) + "px");
       })
-      .on('mouseout', function() {
-        tooltip.transition().duration(500).style('opacity', 0);
+      .on("mouseout", function(d) {
+        tooltip.transition()
+          .duration(500)
+          .style("opacity", 0);
       });
   },
 
-  renderColorbar: function(svg, colorScale, config, margin, height) {
-    const colorbarWidth = 20;
-    const colorbarHeight = height * 0.8;
-    const colorbarX = margin.left + margin.right + colorbarWidth;
-    const colorbarY = margin.top + (height - colorbarHeight) / 2;
-    
-    // Create gradient definition
-    const defs = svg.append('defs');
-    const gradient = defs.append('linearGradient')
-      .attr('id', 'colorbar-gradient')
-      .attr('x1', '0%')
-      .attr('y1', '100%')
-      .attr('x2', '0%')
-      .attr('y2', '0%');
-    
-    const domain = colorScale.domain();
-    const range = colorScale.range();
-    
-    if (domain.length === 3) {
-      gradient.append('stop')
-        .attr('offset', '0%')
-        .attr('stop-color', range[0]);
-      gradient.append('stop')
-        .attr('offset', '50%')
-        .attr('stop-color', range[1]);
-      gradient.append('stop')
-        .attr('offset', '100%')
-        .attr('stop-color', range[2]);
-    } else {
-      gradient.append('stop')
-        .attr('offset', '0%')
-        .attr('stop-color', range[0]);
-      gradient.append('stop')
-        .attr('offset', '100%')
-        .attr('stop-color', range[1]);
-    }
-    
-    // Draw colorbar
-    svg.append('rect')
-      .attr('x', colorbarX)
-      .attr('y', colorbarY)
-      .attr('width', colorbarWidth)
-      .attr('height', colorbarHeight)
-      .style('fill', 'url(#colorbar-gradient)')
-      .style('stroke', '#6b7280');
-    
-    // Add scale
-    const colorbarScale = d3.scaleLinear()
-      .domain(domain.length === 3 ? [domain[0], domain[2]] : domain)
-      .range([colorbarY + colorbarHeight, colorbarY]);
-    
-    svg.append('g')
-      .attr('transform', `translate(${colorbarX + colorbarWidth + 5}, 0)`)
-      .call(d3.axisRight(colorbarScale).ticks(5))
-      .style('color', '#e5e7eb')
-      .selectAll('text')
-      .style('fill', '#e5e7eb');
-  },
-
+  // Show error message
   showError: function(message) {
-    this.container.innerHTML = `
-      <div style="
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        height: 100%;
-        color: #ef4444;
-        font-size: 14px;
-        text-align: center;
-        padding: 20px;
-      ">
-        ${message}
-      </div>
-    `;
+    this.container
+      .append("div")
+      .style("text-align", "center")
+      .style("padding", "50px")
+      .style("color", "#ff0000")
+      .text(message);
   },
 
-  showWarnings: function(warnings) {
-    const warningDiv = document.createElement('div');
-    warningDiv.style.cssText = `
-      position: absolute;
-      top: 10px;
-      left: 10px;
-      background: rgba(251, 191, 36, 0.9);
-      color: #1f2937;
-      padding: 8px 12px;
-      border-radius: 4px;
-      font-size: 12px;
-      z-index: 100;
-      max-width: 300px;
-    `;
-    warningDiv.innerHTML = warnings.map(w => `⚠️ ${w}`).join('<br>');
-    this.container.appendChild(warningDiv);
-    
-    // Auto-hide after 5 seconds
-    setTimeout(() => {
-      if (warningDiv.parentNode) {
-        warningDiv.parentNode.removeChild(warningDiv);
-      }
-    }, 5000);
-  },
-
-  clearError: function() {
-    // Remove any existing error messages
-    const existingErrors = this.container.querySelectorAll('[style*="color: #ef4444"]');
-    existingErrors.forEach(el => el.remove());
-    
-    // Remove any existing warnings
-    const existingWarnings = this.container.querySelectorAll('[style*="background: rgba(251, 191, 36"]');
-    existingWarnings.forEach(el => el.remove());
+  // Show info message
+  showMessage: function(message) {
+    this.container
+      .append("div")
+      .style("text-align", "center")
+      .style("padding", "50px")
+      .style("color", "#666666")
+      .text(message);
   }
 });
