@@ -41,86 +41,93 @@ looker.plugins.visualizations.add({
       section: "Plot",
       order: 4
     },
+    use_midpoint_color: {
+      type: "boolean",
+      label: "Use Midpoint Color",
+      default: false,
+      section: "Plot",
+      order: 5
+    },
     color_max: {
       type: "string",
       label: "Maximum Color",
       display: "color",
       default: "#ff0000",
       section: "Plot",
-      order: 5
+      order: 6
     },
     color_min_value: {
       type: "number",
       label: "Minimum Value",
       section: "Plot",
-      order: 6
+      order: 7
     },
     color_max_value: {
       type: "number",
       label: "Maximum Value",
       section: "Plot",
-      order: 7
+      order: 8
     },
     show_x_axis_name: {
       type: "boolean",
       label: "Show Axis Name",
       default: true,
       section: "X",
-      order: 8
+      order: 9
     },
     custom_x_axis_name: {
       type: "string",
       label: "Custom Axis Name",
       default: "",
       section: "X",
-      order: 9
+      order: 10
     },
     x_gridlines: {
       type: "boolean",
       label: "Gridlines",
       default: false,
       section: "X",
-      order: 10
+      order: 11
     },
     show_y_axis_name: {
       type: "boolean",
       label: "Show Axis Name",
       default: true,
       section: "Y",
-      order: 11
+      order: 12
     },
     custom_y_axis_name: {
       type: "string",
       label: "Custom Axis Name",
       default: "",
       section: "Y",
-      order: 12
+      order: 13
     },
     y_gridlines: {
       type: "boolean",
       label: "Gridlines",
       default: true,
       section: "Y",
-      order: 13
+      order: 14
     },
     unpin_axis_from_zero: {
       type: "boolean",
       label: "Unpin Axis From Zero",
       default: false,
       section: "Y",
-      order: 14
+      order: 15
     },
     y_min_value: {
       type: "number",
       label: "Minimum Value",
       section: "Y",
-      order: 15
+      order: 16
     },
     y_max_value: {
       type: "number",
       label: "Maximum Value",
       section: "Y",
-      order: 16
+      order: 17
     }
   },
 
@@ -378,7 +385,7 @@ looker.plugins.visualizations.add({
     const colorMid = config.color_mid || "#ffff00";
     const colorMax = config.color_max || "#ff0000";
 
-    if (colorMid && colorMid.trim() !== "") {
+    if (config.use_midpoint_color && colorMid && colorMid.trim() !== "") {
       const midpoint = (colorDomain[0] + colorDomain[1]) / 2;
       colorScale = d3.scaleLinear()
         .domain([colorDomain[0], midpoint, colorDomain[1]])
@@ -419,7 +426,7 @@ looker.plugins.visualizations.add({
         .attr("x2", d => scales.x(d))
         .attr("y1", 0)
         .attr("y2", dimensions.height)
-        .attr("stroke", "#f0f0f0")
+        .attr("stroke", "#e6e6e6")
         .attr("stroke-width", 1);
     }
 
@@ -435,7 +442,7 @@ looker.plugins.visualizations.add({
         .attr("x2", dimensions.width)
         .attr("y1", d => scales.y(d))
         .attr("y2", d => scales.y(d))
-        .attr("stroke", "#f0f0f0")
+        .attr("stroke", "#e6e6e6")
         .attr("stroke-width", 1);
     }
   },
@@ -460,7 +467,7 @@ looker.plugins.visualizations.add({
     xAxisGroup.selectAll(".tick line").remove();
     
     xAxisGroup.selectAll("text")
-      .style("font-size", "11px")
+      .style("font-size", "12px")
       .style("fill", "#262D33")
       .style("font-family", "Roboto, 'Noto Sans', Helvetica, Arial, sans-serif");
 
@@ -473,7 +480,7 @@ looker.plugins.visualizations.add({
       svg.append("text")
         .attr("transform", `translate(${dimensions.width / 2}, ${dimensions.height + 45})`)
         .style("text-anchor", "middle")
-        .style("font-size", "11px")
+        .style("font-size", "12px")
         .style("fill", "#262D33")
         .style("font-family", "Roboto, 'Noto Sans', Helvetica, Arial, sans-serif")
         .text(xLabel);
@@ -494,7 +501,7 @@ looker.plugins.visualizations.add({
     yAxisGroup.selectAll(".tick line").remove();
     
     yAxisGroup.selectAll("text")
-      .style("font-size", "11px")
+      .style("font-size", "12px")
       .style("fill", "#262D33")
       .style("font-family", "Roboto, 'Noto Sans', Helvetica, Arial, sans-serif");
 
@@ -506,10 +513,10 @@ looker.plugins.visualizations.add({
       
       svg.append("text")
         .attr("transform", "rotate(-90)")
-        .attr("y", 0 - 45)
-        .attr("x", 0 - (dimensions.height / 2))
+        .attr("y", -35)
+        .attr("x", -(dimensions.height / 2))
         .style("text-anchor", "middle")
-        .style("font-size", "11px")
+        .style("font-size", "12px")
         .style("fill", "#262D33")
         .style("font-family", "Roboto, 'Noto Sans', Helvetica, Arial, sans-serif")
         .text(yLabel);
@@ -555,7 +562,7 @@ looker.plugins.visualizations.add({
         .datum([d1, d2])
         .attr("fill", "none")
         .attr("stroke", avgColor)
-        .attr("stroke-width", 1.5)
+        .attr("stroke-width", 2)
         .attr("stroke-linecap", "round")
         .attr("stroke-linejoin", "round")
         .attr("d", line);
@@ -571,7 +578,7 @@ looker.plugins.visualizations.add({
       .attr("class", "dot")
       .attr("cx", d => scales.x(d.x))
       .attr("cy", d => scales.y(d.y))
-      .attr("r", 3)
+      .attr("r", 5)
       .attr("fill", d => scales.color(d.c))
       .attr("stroke", "white")
       .attr("stroke-width", 1.5);
@@ -646,18 +653,22 @@ looker.plugins.visualizations.add({
 
   // Add tooltip functionality
   addTooltip: function(svg, data, scales, config, queryResponse) {
-    // Create tooltip div
+    // Create tooltip div with Looker-style formatting
     const tooltip = d3.select("body").append("div")
-      .attr("class", "tooltip")
+      .attr("class", "gradient-line-tooltip")
       .style("opacity", 0)
       .style("position", "absolute")
-      .style("background", "rgba(0, 0, 0, 0.8)")
+      .style("background", "#4a5568")
       .style("color", "white")
-      .style("padding", "8px")
-      .style("border-radius", "4px")
-      .style("font-size", "12px")
+      .style("padding", "8px 10px")
+      .style("border-radius", "6px")
+      .style("font-family", "Roboto, 'Noto Sans', Helvetica, Arial, sans-serif")
+      .style("font-size", "11px")
+      .style("line-height", "1.4")
+      .style("box-shadow", "0 2px 8px rgba(0,0,0,0.15)")
       .style("pointer-events", "none")
-      .style("z-index", "1000");
+      .style("z-index", "1000")
+      .style("white-space", "nowrap");
 
     // Add invisible circles for tooltip interaction
     svg.selectAll(".tooltip-target")
@@ -674,23 +685,36 @@ looker.plugins.visualizations.add({
         const firstMeasureLabel = queryResponse.fields.measure_like[0].label_short;
         const secondMeasureLabel = queryResponse.fields.measure_like[1]?.label_short;
 
-        let tooltipText = `${dimensionLabel}: ${d.originalX}<br>${firstMeasureLabel}: ${d.originalY}`;
+        // Format values nicely
+        const formatX = typeof d.originalX === 'string' ? d.originalX : 
+                       d.originalX instanceof Date ? d.originalX.toLocaleDateString() : 
+                       d.originalX.toLocaleString();
+        
+        const formatY = typeof d.originalY === 'number' ? d.originalY.toLocaleString() : d.originalY;
+        const formatC = typeof d.originalC === 'number' ? d.originalC.toLocaleString() : d.originalC;
+
+        // Build tooltip content with proper structure
+        let tooltipContent = `<div style="font-weight: 500; margin-bottom: 4px;">${dimensionLabel}</div>`;
+        tooltipContent += `<div style="margin-bottom: 2px;">${formatX}</div>`;
+        tooltipContent += `<div style="font-weight: 500; margin-bottom: 4px; margin-top: 8px;">${firstMeasureLabel}</div>`;
+        tooltipContent += `<div style="margin-bottom: 2px;">${formatY}</div>`;
         
         if (secondMeasureLabel) {
-          tooltipText += `<br>${secondMeasureLabel}: ${d.originalC}`;
+          tooltipContent += `<div style="font-weight: 500; margin-bottom: 4px; margin-top: 8px;">${secondMeasureLabel}</div>`;
+          tooltipContent += `<div>${formatC}</div>`;
         }
 
         tooltip.transition()
-          .duration(200)
-          .style("opacity", .9);
+          .duration(150)
+          .style("opacity", .95);
         
-        tooltip.html(tooltipText)
-          .style("left", (event.pageX + 10) + "px")
-          .style("top", (event.pageY - 28) + "px");
+        tooltip.html(tooltipContent)
+          .style("left", (event.pageX + 12) + "px")
+          .style("top", (event.pageY - 10) + "px");
       })
       .on("mouseout", function(d) {
         tooltip.transition()
-          .duration(500)
+          .duration(300)
           .style("opacity", 0);
       });
   },
