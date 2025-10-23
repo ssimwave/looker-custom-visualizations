@@ -5,115 +5,122 @@ looker.plugins.visualizations.add({
   
   // Configuration options
   options: {
-    plot: {
-      type: "object",
-      label: "Plot",
-      display: "section",
-      properties: {
-        style: {
-          type: "string",
-          label: "Style",
-          display: "select",
-          values: [
-            {"Line": "line"},
-            {"Line And Dots": "line_with_dots"},
-            {"Dots": "dots"}
-          ],
-          default: "line"
-        },
-        plot_null_values: {
-          type: "boolean",
-          label: "Plot Null Values",
-          default: false
-        },
-        color_min: {
-          type: "string",
-          label: "Minimum Color",
-          display: "color",
-          default: "#00ff00"
-        },
-        color_mid: {
-          type: "string",
-          label: "Midpoint Color (Optional)",
-          display: "color",
-          default: "#ffff00"
-        },
-        color_max: {
-          type: "string",
-          label: "Maximum Color",
-          display: "color",
-          default: "#ff0000"
-        },
-        min_value: {
-          type: "number",
-          label: "Minimum Value",
-          default: null
-        },
-        max_value: {
-          type: "number",
-          label: "Maximum Value",
-          default: null
-        }
-      }
+    style: {
+      type: "string",
+      label: "Style",
+      display: "select",
+      values: [
+        {"Line": "line"},
+        {"Line And Dots": "line_with_dots"},
+        {"Dots": "dots"}
+      ],
+      default: "line",
+      section: "Plot",
+      order: 1
     },
-    x_axis: {
-      type: "object",
-      label: "X",
-      display: "section",
-      properties: {
-        show_axis_name: {
-          type: "boolean",
-          label: "Show Axis Name",
-          default: true
-        },
-        custom_axis_name: {
-          type: "string",
-          label: "Custom Axis Name",
-          default: ""
-        },
-        gridlines: {
-          type: "boolean",
-          label: "Gridlines",
-          default: false
-        }
-      }
+    plot_null_values: {
+      type: "boolean",
+      label: "Plot Null Values",
+      default: false,
+      section: "Plot",
+      order: 2
     },
-    y_axis: {
-      type: "object",
-      label: "Y",
-      display: "section",
-      properties: {
-        show_axis_name: {
-          type: "boolean",
-          label: "Show Axis Name",
-          default: true
-        },
-        custom_axis_name: {
-          type: "string",
-          label: "Custom Axis Name",
-          default: ""
-        },
-        gridlines: {
-          type: "boolean",
-          label: "Gridlines",
-          default: true
-        },
-        unpin_axis_from_zero: {
-          type: "boolean",
-          label: "Unpin Axis From Zero",
-          default: false
-        },
-        min_value: {
-          type: "number",
-          label: "Minimum Value",
-          default: null
-        },
-        max_value: {
-          type: "number",
-          label: "Maximum Value",
-          default: null
-        }
-      }
+    color_min: {
+      type: "string",
+      label: "Minimum Color",
+      display: "color",
+      default: "#00ff00",
+      section: "Plot",
+      order: 3
+    },
+    color_mid: {
+      type: "string",
+      label: "Midpoint Color (Optional)",
+      display: "color",
+      default: "#ffff00",
+      section: "Plot",
+      order: 4
+    },
+    color_max: {
+      type: "string",
+      label: "Maximum Color",
+      display: "color",
+      default: "#ff0000",
+      section: "Plot",
+      order: 5
+    },
+    color_min_value: {
+      type: "number",
+      label: "Minimum Value",
+      section: "Plot",
+      order: 6
+    },
+    color_max_value: {
+      type: "number",
+      label: "Maximum Value",
+      section: "Plot",
+      order: 7
+    },
+    show_x_axis_name: {
+      type: "boolean",
+      label: "Show Axis Name",
+      default: true,
+      section: "X",
+      order: 8
+    },
+    custom_x_axis_name: {
+      type: "string",
+      label: "Custom Axis Name",
+      default: "",
+      section: "X",
+      order: 9
+    },
+    x_gridlines: {
+      type: "boolean",
+      label: "Gridlines",
+      default: false,
+      section: "X",
+      order: 10
+    },
+    show_y_axis_name: {
+      type: "boolean",
+      label: "Show Axis Name",
+      default: true,
+      section: "Y",
+      order: 11
+    },
+    custom_y_axis_name: {
+      type: "string",
+      label: "Custom Axis Name",
+      default: "",
+      section: "Y",
+      order: 12
+    },
+    y_gridlines: {
+      type: "boolean",
+      label: "Gridlines",
+      default: true,
+      section: "Y",
+      order: 13
+    },
+    unpin_axis_from_zero: {
+      type: "boolean",
+      label: "Unpin Axis From Zero",
+      default: false,
+      section: "Y",
+      order: 14
+    },
+    y_min_value: {
+      type: "number",
+      label: "Minimum Value",
+      section: "Y",
+      order: 15
+    },
+    y_max_value: {
+      type: "number",
+      label: "Maximum Value",
+      section: "Y",
+      order: 16
     }
   },
 
@@ -261,7 +268,7 @@ looker.plugins.visualizations.add({
 
       // Handle null values
       if (yValue === null) {
-        if (config.plot && config.plot.plot_null_values) {
+        if (config.plot_null_values) {
           yValue = 0;
         } else {
           return; // Skip this point
@@ -269,7 +276,7 @@ looker.plugins.visualizations.add({
       }
 
       if (colorValue === null) {
-        if (config.plot && config.plot.plot_null_values) {
+        if (config.plot_null_values) {
           colorValue = 0;
         } else {
           return; // Skip this point
@@ -330,22 +337,23 @@ looker.plugins.visualizations.add({
 
     // Y scale
     let yDomain;
-    if (config.y_axis && config.y_axis.min_value !== null && config.y_axis.max_value !== null) {
-      yDomain = [config.y_axis.min_value, config.y_axis.max_value];
+    if (config.y_min_value !== null && config.y_min_value !== undefined && 
+        config.y_max_value !== null && config.y_max_value !== undefined) {
+      yDomain = [config.y_min_value, config.y_max_value];
     } else {
       const yExtent = d3.extent(data, d => d.y);
-      if (config.y_axis && config.y_axis.unpin_axis_from_zero) {
+      if (config.unpin_axis_from_zero) {
         yDomain = yExtent;
       } else {
         yDomain = [0, yExtent[1]];
       }
       
       // Apply manual min/max if specified
-      if (config.y_axis && config.y_axis.min_value !== null) {
-        yDomain[0] = config.y_axis.min_value;
+      if (config.y_min_value !== null && config.y_min_value !== undefined) {
+        yDomain[0] = config.y_min_value;
       }
-      if (config.y_axis && config.y_axis.max_value !== null) {
-        yDomain[1] = config.y_axis.max_value;
+      if (config.y_max_value !== null && config.y_max_value !== undefined) {
+        yDomain[1] = config.y_max_value;
       }
     }
 
@@ -359,20 +367,20 @@ looker.plugins.visualizations.add({
     let colorDomain = colorExtent;
     
     // Apply manual color min/max if specified
-    if (config.plot && config.plot.min_value !== null) {
-      colorDomain[0] = config.plot.min_value;
+    if (config.color_min_value !== null && config.color_min_value !== undefined) {
+      colorDomain[0] = config.color_min_value;
     }
-    if (config.plot && config.plot.max_value !== null) {
-      colorDomain[1] = config.plot.max_value;
+    if (config.color_max_value !== null && config.color_max_value !== undefined) {
+      colorDomain[1] = config.color_max_value;
     }
 
-    const colorMin = (config.plot && config.plot.color_min) || "#00ff00";
-    const colorMid = (config.plot && config.plot.color_mid) || "#ffff00";
-    const colorMax = (config.plot && config.plot.color_max) || "#ff0000";
+    const colorMin = config.color_min || "#00ff00";
+    const colorMid = config.color_mid || "#ffff00";
+    const colorMax = config.color_max || "#ff0000";
 
     if (colorMid && colorMid.trim() !== "") {
       const midpoint = (colorDomain[0] + colorDomain[1]) / 2;
-      colorScale = d3.scaleDiverging()
+      colorScale = d3.scaleLinear()
         .domain([colorDomain[0], midpoint, colorDomain[1]])
         .range([colorMin, colorMid, colorMax]);
     } else {
@@ -400,7 +408,7 @@ looker.plugins.visualizations.add({
   // Draw gridlines
   drawGridlines: function(svg, scales, dimensions, config) {
     // Vertical gridlines (X) - lighter and more subtle
-    if (config.x_axis && config.x_axis.gridlines) {
+    if (config.x_gridlines) {
       svg.append("g")
         .attr("class", "grid")
         .selectAll("line")
@@ -416,7 +424,7 @@ looker.plugins.visualizations.add({
     }
 
     // Horizontal gridlines (Y) - match Looker's style
-    if (config.y_axis && config.y_axis.gridlines) {
+    if (config.y_gridlines) {
       svg.append("g")
         .attr("class", "grid")
         .selectAll("line")
@@ -436,68 +444,64 @@ looker.plugins.visualizations.add({
   drawAxes: function(svg, scales, dimensions, config, queryResponse) {
     // X axis
     const xAxis = d3.axisBottom(scales.x)
-      .tickSize(-6)
+      .tickSize(0)  // No tick marks
       .tickPadding(8);
     
     const xAxisGroup = svg.append("g")
       .attr("transform", `translate(0,${dimensions.height})`)
       .call(xAxis);
     
-    // Style X axis to match Looker
+    // Style X axis to match Looker - keep the domain line
     xAxisGroup.select(".domain")
       .attr("stroke", "#ddd")
       .attr("stroke-width", 1);
     
-    xAxisGroup.selectAll(".tick line")
-      .attr("stroke", "#ddd")
-      .attr("stroke-width", 1);
+    // Remove tick lines (they're already set to 0 size)
+    xAxisGroup.selectAll(".tick line").remove();
     
     xAxisGroup.selectAll("text")
       .style("font-size", "11px")
-      .style("fill", "#6B7280")
+      .style("fill", "#262D33")
       .style("font-family", "Roboto, 'Noto Sans', Helvetica, Arial, sans-serif");
 
     // X axis label
-    if (config.x_axis && config.x_axis.show_axis_name) {
-      const xLabel = (config.x_axis.custom_axis_name && config.x_axis.custom_axis_name.trim() !== "") 
-        ? config.x_axis.custom_axis_name 
+    if (config.show_x_axis_name) {
+      const xLabel = (config.custom_x_axis_name && config.custom_x_axis_name.trim() !== "") 
+        ? config.custom_x_axis_name 
         : queryResponse.fields.dimension_like[0].label_short;
       
       svg.append("text")
         .attr("transform", `translate(${dimensions.width / 2}, ${dimensions.height + 45})`)
         .style("text-anchor", "middle")
         .style("font-size", "11px")
-        .style("fill", "#6B7280")
+        .style("fill", "#262D33")
         .style("font-family", "Roboto, 'Noto Sans', Helvetica, Arial, sans-serif")
         .text(xLabel);
     }
 
     // Y axis
     const yAxis = d3.axisLeft(scales.y)
-      .tickSize(-6)
+      .tickSize(0)  // No tick marks
       .tickPadding(8);
     
     const yAxisGroup = svg.append("g")
       .call(yAxis);
     
-    // Style Y axis to match Looker
-    yAxisGroup.select(".domain")
-      .attr("stroke", "#ddd")
-      .attr("stroke-width", 1);
+    // Style Y axis to match Looker - REMOVE the domain line entirely
+    yAxisGroup.select(".domain").remove();
     
-    yAxisGroup.selectAll(".tick line")
-      .attr("stroke", "#ddd")
-      .attr("stroke-width", 1);
+    // Remove tick lines (they're already set to 0 size)
+    yAxisGroup.selectAll(".tick line").remove();
     
     yAxisGroup.selectAll("text")
       .style("font-size", "11px")
-      .style("fill", "#6B7280")
+      .style("fill", "#262D33")
       .style("font-family", "Roboto, 'Noto Sans', Helvetica, Arial, sans-serif");
 
     // Y axis label
-    if (config.y_axis && config.y_axis.show_axis_name) {
-      const yLabel = (config.y_axis.custom_axis_name && config.y_axis.custom_axis_name.trim() !== "") 
-        ? config.y_axis.custom_axis_name 
+    if (config.show_y_axis_name) {
+      const yLabel = (config.custom_y_axis_name && config.custom_y_axis_name.trim() !== "") 
+        ? config.custom_y_axis_name 
         : queryResponse.fields.measure_like[0].label_short;
       
       svg.append("text")
@@ -506,7 +510,7 @@ looker.plugins.visualizations.add({
         .attr("x", 0 - (dimensions.height / 2))
         .style("text-anchor", "middle")
         .style("font-size", "11px")
-        .style("fill", "#6B7280")
+        .style("fill", "#262D33")
         .style("font-family", "Roboto, 'Noto Sans', Helvetica, Arial, sans-serif")
         .text(yLabel);
     }
@@ -514,7 +518,7 @@ looker.plugins.visualizations.add({
 
   // Draw the main plot
   drawPlot: function(svg, data, scales, config) {
-    const plotStyle = (config.plot && config.plot.style) || "line";
+    const plotStyle = config.style || "line";
 
     // Draw line if needed
     if (plotStyle === "line" || plotStyle === "line_with_dots") {
@@ -636,7 +640,7 @@ looker.plugins.visualizations.add({
     
     legendAxisGroup.selectAll("text")
       .style("font-size", "10px")
-      .style("fill", "#6B7280")
+      .style("fill", "#262D33")
       .style("font-family", "Roboto, 'Noto Sans', Helvetica, Arial, sans-serif");
   },
 
