@@ -125,10 +125,29 @@ looker.plugins.visualizations.add({
       .style("font-size", "12px")
       .style("color", "#262D33")
       .style("background-color", "white");
+
+    // Store element reference for resize handling
+    this.element = element;
+    
+    // Set up ResizeObserver for responsive behavior
+    if (window.ResizeObserver) {
+      this.resizeObserver = new ResizeObserver((entries) => {
+        // Debounce resize events to avoid too many redraws
+        clearTimeout(this.resizeTimeout);
+        this.resizeTimeout = setTimeout(() => {
+          if (this.lastData && this.lastConfig && this.lastQueryResponse) {
+            // Re-render with stored data
+            this.updateVisualization(this.lastData, this.lastConfig, this.lastQueryResponse);
+          }
+        }, 100);
+      });
+      
+      this.resizeObserver.observe(element);
+    }
   },
 
-  // Update the visualization
-  updateAsync: function(data, element, config, queryResponse, details, done) {
+  // Internal method to handle the actual visualization update
+  updateVisualization: function(data, config, queryResponse) {
     try {
       // Clear previous content
       this.container.selectAll("*").remove();
@@ -137,7 +156,6 @@ looker.plugins.visualizations.add({
       const validation = this.validateData(data, queryResponse);
       if (!validation.isValid) {
         this.showError(validation.message);
-        done();
         return;
       }
 
@@ -145,12 +163,11 @@ looker.plugins.visualizations.add({
       const processedData = this.processData(data, queryResponse, config);
       if (processedData.length === 0) {
         this.showMessage("No data to display");
-        done();
         return;
       }
 
       // Set up dimensions and scales
-      const dimensions = this.setupDimensions(element);
+      const dimensions = this.setupDimensions(this.element);
       const scales = this.setupScales(processedData, dimensions, config);
 
       // Create SVG
@@ -170,6 +187,23 @@ looker.plugins.visualizations.add({
 
       // Add tooltip
       this.addTooltip(svg, processedData, scales, config, queryResponse);
+
+    } catch (error) {
+      console.error("Error in updateVisualization:", error);
+      this.showError("An error occurred while rendering the visualization");
+    }
+  },
+
+  // Update the visualization
+  updateAsync: function(data, element, config, queryResponse, details, done) {
+    try {
+      // Store data for resize handling
+      this.lastData = data;
+      this.lastConfig = config;
+      this.lastQueryResponse = queryResponse;
+
+      // Perform the visualization update
+      this.updateVisualization(data, config, queryResponse);
 
       done();
     } catch (error) {
@@ -266,7 +300,7 @@ looker.plugins.visualizations.add({
 
   // Setup chart dimensions
   setupDimensions: function(element) {
-    const margin = { top: 20, right: 120, bottom: 60, left: 60 };
+    const margin = { top: 25, right: 80, bottom: 50, left: 55 };
     const width = element.clientWidth - margin.left - margin.right;
     const height = element.clientHeight - margin.top - margin.bottom;
 
@@ -365,7 +399,7 @@ looker.plugins.visualizations.add({
 
   // Draw gridlines
   drawGridlines: function(svg, scales, dimensions, config) {
-    // Vertical gridlines (X)
+    // Vertical gridlines (X) - lighter and more subtle
     if (config.x_axis && config.x_axis.gridlines) {
       svg.append("g")
         .attr("class", "grid")
@@ -377,11 +411,11 @@ looker.plugins.visualizations.add({
         .attr("x2", d => scales.x(d))
         .attr("y1", 0)
         .attr("y2", dimensions.height)
-        .attr("stroke", "#e0e0e0")
+        .attr("stroke", "#f0f0f0")
         .attr("stroke-width", 1);
     }
 
-    // Horizontal gridlines (Y)
+    // Horizontal gridlines (Y) - match Looker's style
     if (config.y_axis && config.y_axis.gridlines) {
       svg.append("g")
         .attr("class", "grid")
@@ -393,7 +427,7 @@ looker.plugins.visualizations.add({
         .attr("x2", dimensions.width)
         .attr("y1", d => scales.y(d))
         .attr("y2", d => scales.y(d))
-        .attr("stroke", "#e0e0e0")
+        .attr("stroke", "#f0f0f0")
         .attr("stroke-width", 1);
     }
   },
@@ -401,13 +435,27 @@ looker.plugins.visualizations.add({
   // Draw axes
   drawAxes: function(svg, scales, dimensions, config, queryResponse) {
     // X axis
-    const xAxis = d3.axisBottom(scales.x);
-    svg.append("g")
+    const xAxis = d3.axisBottom(scales.x)
+      .tickSize(-6)
+      .tickPadding(8);
+    
+    const xAxisGroup = svg.append("g")
       .attr("transform", `translate(0,${dimensions.height})`)
-      .call(xAxis)
-      .selectAll("text")
-      .style("font-size", "12px")
-      .style("fill", "#262D33");
+      .call(xAxis);
+    
+    // Style X axis to match Looker
+    xAxisGroup.select(".domain")
+      .attr("stroke", "#ddd")
+      .attr("stroke-width", 1);
+    
+    xAxisGroup.selectAll(".tick line")
+      .attr("stroke", "#ddd")
+      .attr("stroke-width", 1);
+    
+    xAxisGroup.selectAll("text")
+      .style("font-size", "11px")
+      .style("fill", "#6B7280")
+      .style("font-family", "Roboto, 'Noto Sans', Helvetica, Arial, sans-serif");
 
     // X axis label
     if (config.x_axis && config.x_axis.show_axis_name) {
@@ -416,20 +464,35 @@ looker.plugins.visualizations.add({
         : queryResponse.fields.dimension_like[0].label_short;
       
       svg.append("text")
-        .attr("transform", `translate(${dimensions.width / 2}, ${dimensions.height + 40})`)
+        .attr("transform", `translate(${dimensions.width / 2}, ${dimensions.height + 45})`)
         .style("text-anchor", "middle")
-        .style("font-size", "12px")
-        .style("fill", "#262D33")
+        .style("font-size", "11px")
+        .style("fill", "#6B7280")
+        .style("font-family", "Roboto, 'Noto Sans', Helvetica, Arial, sans-serif")
         .text(xLabel);
     }
 
     // Y axis
-    const yAxis = d3.axisLeft(scales.y);
-    svg.append("g")
-      .call(yAxis)
-      .selectAll("text")
-      .style("font-size", "12px")
-      .style("fill", "#262D33");
+    const yAxis = d3.axisLeft(scales.y)
+      .tickSize(-6)
+      .tickPadding(8);
+    
+    const yAxisGroup = svg.append("g")
+      .call(yAxis);
+    
+    // Style Y axis to match Looker
+    yAxisGroup.select(".domain")
+      .attr("stroke", "#ddd")
+      .attr("stroke-width", 1);
+    
+    yAxisGroup.selectAll(".tick line")
+      .attr("stroke", "#ddd")
+      .attr("stroke-width", 1);
+    
+    yAxisGroup.selectAll("text")
+      .style("font-size", "11px")
+      .style("fill", "#6B7280")
+      .style("font-family", "Roboto, 'Noto Sans', Helvetica, Arial, sans-serif");
 
     // Y axis label
     if (config.y_axis && config.y_axis.show_axis_name) {
@@ -439,11 +502,12 @@ looker.plugins.visualizations.add({
       
       svg.append("text")
         .attr("transform", "rotate(-90)")
-        .attr("y", 0 - 40)
+        .attr("y", 0 - 45)
         .attr("x", 0 - (dimensions.height / 2))
         .style("text-anchor", "middle")
-        .style("font-size", "12px")
-        .style("fill", "#262D33")
+        .style("font-size", "11px")
+        .style("fill", "#6B7280")
+        .style("font-family", "Roboto, 'Noto Sans', Helvetica, Arial, sans-serif")
         .text(yLabel);
     }
   },
@@ -463,7 +527,7 @@ looker.plugins.visualizations.add({
     }
   },
 
-  // Draw line with gradient segments
+    // Draw line with gradient segments
   drawLine: function(svg, data, scales) {
     const line = d3.line()
       .x(d => scales.x(d.x))
@@ -475,15 +539,21 @@ looker.plugins.visualizations.add({
       const d1 = data[i];
       const d2 = data[i + 1];
       
-      // Average color for the segment
-      const avgColor = d3.interpolate(scales.color(d1.c), scales.color(d2.c))(0.5);
+      // Get colors for each point
+      const color1 = scales.color(d1.c);
+      const color2 = scales.color(d2.c);
+      
+      // Average color for the segment using d3.interpolateRgb
+      const colorInterpolator = d3.interpolateRgb(color1, color2);
+      const avgColor = colorInterpolator(0.5);
       
       svg.append("path")
         .datum([d1, d2])
         .attr("fill", "none")
         .attr("stroke", avgColor)
-        .attr("stroke-width", 2)
+        .attr("stroke-width", 1.5)
         .attr("stroke-linecap", "round")
+        .attr("stroke-linejoin", "round")
         .attr("d", line);
     }
   },
@@ -497,17 +567,17 @@ looker.plugins.visualizations.add({
       .attr("class", "dot")
       .attr("cx", d => scales.x(d.x))
       .attr("cy", d => scales.y(d.y))
-      .attr("r", 4)
+      .attr("r", 3)
       .attr("fill", d => scales.color(d.c))
       .attr("stroke", "white")
-      .attr("stroke-width", 1);
+      .attr("stroke-width", 1.5);
   },
 
   // Draw color legend
   drawColorLegend: function(svg, colorScale, dimensions, config) {
-    const legendWidth = 20;
-    const legendHeight = 200;
-    const legendX = dimensions.width + 20;
+    const legendWidth = 15;
+    const legendHeight = 150;
+    const legendX = dimensions.width + 25;
     const legendY = (dimensions.height - legendHeight) / 2;
 
     // Create gradient definition
@@ -538,7 +608,7 @@ looker.plugins.visualizations.add({
       .attr("width", legendWidth)
       .attr("height", legendHeight)
       .style("fill", "url(#color-gradient)")
-      .style("stroke", "#ccc")
+      .style("stroke", "#ddd")
       .style("stroke-width", 1);
 
     // Add legend scale
@@ -547,14 +617,27 @@ looker.plugins.visualizations.add({
       .range([legendHeight, 0]);
 
     const legendAxis = d3.axisRight(legendScale)
-      .ticks(5);
+      .ticks(5)
+      .tickSize(4)
+      .tickPadding(6);
 
-    svg.append("g")
+    const legendAxisGroup = svg.append("g")
       .attr("transform", `translate(${legendX + legendWidth}, ${legendY})`)
-      .call(legendAxis)
-      .selectAll("text")
+      .call(legendAxis);
+
+    // Style legend axis to match Looker
+    legendAxisGroup.select(".domain")
+      .attr("stroke", "#ddd")
+      .attr("stroke-width", 1);
+    
+    legendAxisGroup.selectAll(".tick line")
+      .attr("stroke", "#ddd")
+      .attr("stroke-width", 1);
+    
+    legendAxisGroup.selectAll("text")
       .style("font-size", "10px")
-      .style("fill", "#262D33");
+      .style("fill", "#6B7280")
+      .style("font-family", "Roboto, 'Noto Sans', Helvetica, Arial, sans-serif");
   },
 
   // Add tooltip functionality
@@ -626,5 +709,23 @@ looker.plugins.visualizations.add({
       .style("padding", "50px")
       .style("color", "#666666")
       .text(message);
+  },
+
+  // Cleanup method for proper disposal
+  destroy: function() {
+    if (this.resizeObserver) {
+      this.resizeObserver.disconnect();
+      this.resizeObserver = null;
+    }
+    
+    if (this.resizeTimeout) {
+      clearTimeout(this.resizeTimeout);
+      this.resizeTimeout = null;
+    }
+    
+    // Clean up stored data
+    this.lastData = null;
+    this.lastConfig = null;
+    this.lastQueryResponse = null;
   }
 });
