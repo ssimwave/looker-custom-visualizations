@@ -319,7 +319,7 @@ looker.plugins.visualizations.add({
 
   // Setup chart dimensions
   setupDimensions: function(element) {
-    const margin = { top: 25, right: 80, bottom: 50, left: 55 };
+    const margin = { top: 7, right: 80, bottom: 50, left: 55 };
     const width = element.clientWidth - margin.left - margin.right;
     const height = element.clientHeight - margin.top - margin.bottom;
 
@@ -483,7 +483,7 @@ looker.plugins.visualizations.add({
         : this.getFieldLabel(queryResponse.fields.dimension_like[0]);
       
       svg.append("text")
-        .attr("transform", `translate(${dimensions.width / 2}, ${dimensions.height + 45})`)
+        .attr("transform", `translate(${dimensions.width / 2}, ${dimensions.height + 35})`)
         .style("text-anchor", "middle")
         .style("font-size", "12px")
         .style("fill", "#262D33")
@@ -518,7 +518,7 @@ looker.plugins.visualizations.add({
       
       svg.append("text")
         .attr("transform", "rotate(-90)")
-        .attr("y", -35)
+        .attr("y", -41)
         .attr("x", -(dimensions.height / 2))
         .style("text-anchor", "middle")
         .style("font-size", "12px")
