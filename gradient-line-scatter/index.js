@@ -319,7 +319,7 @@ looker.plugins.visualizations.add({
 
   // Setup chart dimensions
   setupDimensions: function(element) {
-    const margin = { top: 7, right: 80, bottom: 50, left: 55 };
+    const margin = { top: 7, right: 60, bottom: 23, left: 55 };
     const width = element.clientWidth - margin.left - margin.right;
     const height = element.clientHeight - margin.top - margin.bottom;
 
