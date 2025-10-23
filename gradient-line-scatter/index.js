@@ -131,6 +131,11 @@ looker.plugins.visualizations.add({
     }
   },
 
+  // Helper function to get field label (handles table calculations)
+  getFieldLabel: function(field) {
+    return field.label_short || field.label || field.name || 'Untitled';
+  },
+
   // Create the visualization
   create: function(element, config) {
     // Create container
@@ -197,7 +202,7 @@ looker.plugins.visualizations.add({
       this.drawPlot(svg, processedData, scales, config);
 
       // Draw color legend
-      this.drawColorLegend(svg, scales.color, dimensions, config);
+      this.drawColorLegend(svg, scales.color, dimensions, config, queryResponse);
 
       // Add tooltip
       this.addTooltip(svg, processedData, scales, config, queryResponse);
@@ -475,7 +480,7 @@ looker.plugins.visualizations.add({
     if (config.show_x_axis_name) {
       const xLabel = (config.custom_x_axis_name && config.custom_x_axis_name.trim() !== "") 
         ? config.custom_x_axis_name 
-        : queryResponse.fields.dimension_like[0].label_short;
+        : this.getFieldLabel(queryResponse.fields.dimension_like[0]);
       
       svg.append("text")
         .attr("transform", `translate(${dimensions.width / 2}, ${dimensions.height + 45})`)
@@ -509,7 +514,7 @@ looker.plugins.visualizations.add({
     if (config.show_y_axis_name) {
       const yLabel = (config.custom_y_axis_name && config.custom_y_axis_name.trim() !== "") 
         ? config.custom_y_axis_name 
-        : queryResponse.fields.measure_like[0].label_short;
+        : this.getFieldLabel(queryResponse.fields.measure_like[0]);
       
       svg.append("text")
         .attr("transform", "rotate(-90)")
@@ -585,7 +590,7 @@ looker.plugins.visualizations.add({
   },
 
   // Draw color legend
-  drawColorLegend: function(svg, colorScale, dimensions, config) {
+  drawColorLegend: function(svg, colorScale, dimensions, config, queryResponse) {
     const legendWidth = 15;
     const legendHeight = 150;
     const legendX = dimensions.width + 25;
@@ -649,6 +654,21 @@ looker.plugins.visualizations.add({
       .style("font-size", "10px")
       .style("fill", "#262D33")
       .style("font-family", "Roboto, 'Noto Sans', Helvetica, Arial, sans-serif");
+
+    // Add legend label if using a second measure for color
+    if (queryResponse.fields.measure_like.length > 1) {
+      const colorLabel = this.getFieldLabel(queryResponse.fields.measure_like[1]);
+      
+      svg.append("text")
+        .attr("transform", "rotate(-90)")
+        .attr("y", legendX + legendWidth + 55)
+        .attr("x", -(legendY + legendHeight / 2))
+        .style("text-anchor", "middle")
+        .style("font-size", "12px")
+        .style("fill", "#262D33")
+        .style("font-family", "Roboto, 'Noto Sans', Helvetica, Arial, sans-serif")
+        .text(colorLabel);
+    }
   },
 
   // Add tooltip functionality
@@ -658,12 +678,12 @@ looker.plugins.visualizations.add({
       .attr("class", "gradient-line-tooltip")
       .style("opacity", 0)
       .style("position", "absolute")
-      .style("background", "#4a5568")
+      .style("background", "#262d33")
       .style("color", "white")
       .style("padding", "8px 10px")
-      .style("border-radius", "6px")
+      .style("border-radius", "3px")
       .style("font-family", "Roboto, 'Noto Sans', Helvetica, Arial, sans-serif")
-      .style("font-size", "11px")
+      .style("font-size", "12px")
       .style("line-height", "1.4")
       .style("box-shadow", "0 2px 8px rgba(0,0,0,0.15)")
       .style("pointer-events", "none")
@@ -680,10 +700,10 @@ looker.plugins.visualizations.add({
       .attr("cy", d => scales.y(d.y))
       .attr("r", 8)
       .attr("fill", "transparent")
-      .on("mouseover", function(event, d) {
-        const dimensionLabel = queryResponse.fields.dimension_like[0].label_short;
-        const firstMeasureLabel = queryResponse.fields.measure_like[0].label_short;
-        const secondMeasureLabel = queryResponse.fields.measure_like[1]?.label_short;
+      .on("mouseover", (event, d) => {
+        const dimensionLabel = this.getFieldLabel(queryResponse.fields.dimension_like[0]);
+        const firstMeasureLabel = this.getFieldLabel(queryResponse.fields.measure_like[0]);
+        const secondMeasureLabel = queryResponse.fields.measure_like[1] ? this.getFieldLabel(queryResponse.fields.measure_like[1]) : null;
 
         // Format values nicely
         const formatX = typeof d.originalX === 'string' ? d.originalX : 
@@ -695,13 +715,13 @@ looker.plugins.visualizations.add({
 
         // Build tooltip content with proper structure
         let tooltipContent = `<div style="font-weight: 500; margin-bottom: 4px;">${dimensionLabel}</div>`;
-        tooltipContent += `<div style="margin-bottom: 2px;">${formatX}</div>`;
+        tooltipContent += `<div style="margin-bottom: 2px; font-weight: bold;">${formatX}</div>`;
         tooltipContent += `<div style="font-weight: 500; margin-bottom: 4px; margin-top: 8px;">${firstMeasureLabel}</div>`;
-        tooltipContent += `<div style="margin-bottom: 2px;">${formatY}</div>`;
+        tooltipContent += `<div style="margin-bottom: 2px; font-weight: bold;">${formatY}</div>`;
         
         if (secondMeasureLabel) {
           tooltipContent += `<div style="font-weight: 500; margin-bottom: 4px; margin-top: 8px;">${secondMeasureLabel}</div>`;
-          tooltipContent += `<div>${formatC}</div>`;
+          tooltipContent += `<div style="font-weight: bold;">${formatC}</div>`;
         }
 
         tooltip.transition()
