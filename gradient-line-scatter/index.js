@@ -483,7 +483,7 @@ looker.plugins.visualizations.add({
         : this.getFieldLabel(queryResponse.fields.dimension_like[0]);
       
       svg.append("text")
-        .attr("transform", `translate(${dimensions.width / 2}, ${dimensions.height + (dimensions.margin.bottom / 2) + 5})`)
+        .attr("transform", `translate(${dimensions.width / 2}, ${dimensions.height + dimensions.margin.bottom - 8})`)
         .style("text-anchor", "middle")
         .style("font-size", "12px")
         .style("fill", "#262D33")
