@@ -186,7 +186,7 @@ looker.plugins.visualizations.add({
       }
 
       // Set up dimensions and scales
-      const dimensions = this.setupDimensions(this.element);
+      const dimensions = this.setupDimensions(this.element, processedData, config);
       const scales = this.setupScales(processedData, dimensions, config);
 
       // Create SVG
@@ -317,13 +317,74 @@ looker.plugins.visualizations.add({
     return processedData;
   },
 
-  // Setup chart dimensions
-  setupDimensions: function(element) {
-    const margin = { top: 7, right: 70, bottom: 40, left: 55 };
+  // Setup chart dimensions with dynamic margins
+  setupDimensions: function(element, data, config) {
+    // Base margins
+    let leftMargin = 55;
+    let rightMargin = 70;
+    const topMargin = 7;
+    const bottomMargin = 40;
+
+    // Calculate dynamic left margin based on y-axis values
+    if (data && data.length > 0) {
+      // Find the range of y-values to estimate label width
+      const yValues = data.map(d => d.y).filter(v => v !== null && v !== undefined);
+      if (yValues.length > 0) {
+        const maxY = Math.max(...yValues);
+        const minY = Math.min(...yValues);
+        
+        // Apply y-axis configuration
+        const yDomain = this.calculateYDomain(yValues, config);
+        const maxValue = Math.max(Math.abs(yDomain[0]), Math.abs(yDomain[1]));
+        
+        // Estimate text width based on number of characters
+        // Use D3's number formatting to get realistic label lengths
+        const format = d3.format(",.0f");
+        const maxLabel = format(maxValue);
+        const estimatedWidth = maxLabel.length * 7; // ~7px per character
+        
+        // Set minimum left margin to accommodate the widest label + y-axis label + padding
+        leftMargin = Math.max(55, estimatedWidth + 50); // 50px for y-axis label + padding
+      }
+    }
+
+    // Calculate dynamic right margin for color legend
+    if (data && data.length > 0) {
+      // Check if we have color values (second measure)
+      const colorValues = data.map(d => d.c).filter(v => v !== null && v !== undefined);
+      if (colorValues.length > 0) {
+        const maxColor = Math.max(...colorValues);
+        const minColor = Math.min(...colorValues);
+        const maxColorValue = Math.max(Math.abs(minColor), Math.abs(maxColor));
+        
+        // Estimate legend label width
+        const format = d3.format(",.0f");
+        const maxColorLabel = format(maxColorValue);
+        const estimatedColorWidth = maxColorLabel.length * 7;
+        
+        // Set minimum right margin: legend width (15) + label width + padding
+        rightMargin = Math.max(70, 15 + estimatedColorWidth + 25);
+      }
+    }
+
+    const margin = { top: topMargin, right: rightMargin, bottom: bottomMargin, left: leftMargin };
     const width = element.clientWidth - margin.left - margin.right;
     const height = element.clientHeight - margin.top - margin.bottom;
 
     return { margin, width, height };
+  },
+
+  // Helper function to calculate Y domain (extracted from setupScales)
+  calculateYDomain: function(yValues, config) {
+    let yMin = config.y_min_value !== undefined ? config.y_min_value : d3.min(yValues);
+    let yMax = config.y_max_value !== undefined ? config.y_max_value : d3.max(yValues);
+    
+    if (!config.unpin_axis_from_zero) {
+      if (yMin > 0) yMin = 0;
+      if (yMax < 0) yMax = 0;
+    }
+    
+    return [yMin, yMax];
   },
 
   // Setup scales
