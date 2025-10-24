@@ -383,6 +383,9 @@ looker.plugins.visualizations.add({
         
         rightMargin = baseRightMargin;
       }
+    } else if (config.show_color_legend === false) {
+      // When legend is hidden, use minimal right margin to maximize chart space
+      rightMargin = 20;
     }
 
     const margin = { top: topMargin, right: rightMargin, bottom: bottomMargin, left: leftMargin };
