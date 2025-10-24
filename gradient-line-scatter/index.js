@@ -89,45 +89,52 @@ looker.plugins.visualizations.add({
       section: "X",
       order: 11
     },
+    show_color_legend: {
+      type: "boolean",
+      label: "Show Color Legend",
+      default: true,
+      section: "Y",
+      order: 12
+    },
     show_y_axis_name: {
       type: "boolean",
       label: "Show Axis Name",
       default: true,
       section: "Y",
-      order: 12
+      order: 13
     },
     custom_y_axis_name: {
       type: "string",
       label: "Custom Axis Name",
       default: "",
       section: "Y",
-      order: 13
+      order: 14
     },
     y_gridlines: {
       type: "boolean",
       label: "Gridlines",
       default: true,
       section: "Y",
-      order: 14
+      order: 15
     },
     unpin_axis_from_zero: {
       type: "boolean",
       label: "Unpin Axis From Zero",
       default: false,
       section: "Y",
-      order: 15
+      order: 16
     },
     y_min_value: {
       type: "number",
       label: "Minimum Value",
       section: "Y",
-      order: 16
+      order: 17
     },
     y_max_value: {
       type: "number",
       label: "Maximum Value",
       section: "Y",
-      order: 17
+      order: 18
     }
   },
 
@@ -201,8 +208,10 @@ looker.plugins.visualizations.add({
       // Draw the plot
       this.drawPlot(svg, processedData, scales, config);
 
-      // Draw color legend
-      this.drawColorLegend(svg, scales.color, dimensions, config, queryResponse);
+      // Draw color legend if enabled
+      if (config.show_color_legend !== false) {
+        this.drawColorLegend(svg, scales.color, dimensions, config, queryResponse);
+      }
 
       // Add tooltip
       this.addTooltip(svg, processedData, scales, config, queryResponse);
@@ -349,7 +358,7 @@ looker.plugins.visualizations.add({
     }
 
     // Calculate dynamic right margin for color legend
-    if (data && data.length > 0) {
+    if (config.show_color_legend !== false && data && data.length > 0) {
       // Check if we have color values (second measure)
       const colorValues = data.map(d => d.c).filter(v => v !== null && v !== undefined);
       if (colorValues.length > 0) {
