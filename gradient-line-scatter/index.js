@@ -344,7 +344,7 @@ looker.plugins.visualizations.add({
         const estimatedWidth = maxLabel.length * 7; // ~7px per character
         
         // Set minimum left margin to accommodate the widest label + y-axis label + padding
-        leftMargin = Math.max(55, estimatedWidth + 50); // 50px for y-axis label + padding
+        leftMargin = Math.max(55, estimatedWidth + 42); // 42px for y-axis label + padding (reduced by 8px)
       }
     }
 
@@ -362,8 +362,17 @@ looker.plugins.visualizations.add({
         const maxColorLabel = format(maxColorValue);
         const estimatedColorWidth = maxColorLabel.length * 7;
         
-        // Set minimum right margin: legend width (15) + label width + padding
-        rightMargin = Math.max(70, 15 + estimatedColorWidth + 25);
+        // Base right margin: legend width (15) + value labels width + padding
+        let baseRightMargin = Math.max(70, 15 + estimatedColorWidth + 25);
+        
+        // Add extra space for measure name label if there's a second measure
+        // The label is positioned at legendX + legendWidth + 45, so we need additional space
+        const hasSecondMeasure = data.some(d => d.c !== d.y); // Check if color differs from y-value
+        if (hasSecondMeasure) {
+          baseRightMargin += 50; // Additional space for the measure name label
+        }
+        
+        rightMargin = baseRightMargin;
       }
     }
 
@@ -653,7 +662,7 @@ looker.plugins.visualizations.add({
   // Draw color legend
   drawColorLegend: function(svg, colorScale, dimensions, config, queryResponse) {
     const legendWidth = 15;
-    const legendHeight = 150;
+    const legendHeight = Math.max(150, dimensions.height * 0.5); // Half chart height, minimum 150px
     const legendX = dimensions.width + 25;
     const legendY = (dimensions.height - legendHeight) / 2;
 
@@ -717,12 +726,12 @@ looker.plugins.visualizations.add({
       .style("font-family", "Roboto, 'Noto Sans', Helvetica, Arial, sans-serif");
 
     // Add legend label if using a second measure for color
-    if (queryResponse.fields.measure_like.length > 1) {
+    if (queryResponse.fields.measure_like.length > 1 && queryResponse.fields.measure_like[1]) {
       const colorLabel = this.getFieldLabel(queryResponse.fields.measure_like[1]);
       
       svg.append("text")
         .attr("transform", "rotate(-90)")
-        .attr("y", legendX + legendWidth + 55)
+        .attr("y", legendX + legendWidth + 45)
         .attr("x", -(legendY + legendHeight / 2))
         .style("text-anchor", "middle")
         .style("font-size", "12px")
