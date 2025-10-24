@@ -210,7 +210,7 @@ looker.plugins.visualizations.add({
 
       // Draw color legend if enabled
       if (config.show_color_legend !== false) {
-        this.drawColorLegend(svg, scales.color, dimensions, config, queryResponse);
+        this.drawColorLegend(svg, scales.color, scales.colorDomain, dimensions, config, queryResponse);
       }
 
       // Add tooltip
@@ -483,7 +483,7 @@ looker.plugins.visualizations.add({
         .range([colorMin, colorMax]);
     }
 
-    return { x: xScale, y: yScale, color: colorScale };
+    return { x: xScale, y: yScale, color: colorScale, colorDomain: colorDomain };
   },
 
   // Create SVG element
@@ -672,7 +672,7 @@ looker.plugins.visualizations.add({
   },
 
   // Draw color legend
-  drawColorLegend: function(svg, colorScale, dimensions, config, queryResponse) {
+  drawColorLegend: function(svg, colorScale, colorDomain, dimensions, config, queryResponse) {
     const legendWidth = 15;
     const legendHeight = Math.max(150, dimensions.height * 0.5); // Half chart height, minimum 150px
     const legendX = dimensions.width + 25;
@@ -687,13 +687,13 @@ looker.plugins.visualizations.add({
       .attr("x2", "0%")
       .attr("y2", "0%");
 
-    // Add gradient stops
-    const domain = colorScale.domain();
+    // Add gradient stops - use the colorScale for colors (which includes midpoint if enabled)
+    const scaleDomain = colorScale.domain();
     const numStops = 10;
     
     for (let i = 0; i <= numStops; i++) {
       const t = i / numStops;
-      const value = domain[0] + t * (domain[domain.length - 1] - domain[0]);
+      const value = scaleDomain[0] + t * (scaleDomain[scaleDomain.length - 1] - scaleDomain[0]);
       gradient.append("stop")
         .attr("offset", `${t * 100}%`)
         .attr("stop-color", colorScale(value));
@@ -709,9 +709,9 @@ looker.plugins.visualizations.add({
       .style("stroke", "#ddd")
       .style("stroke-width", 1);
 
-    // Add legend scale
+    // Add legend scale - use the original colorDomain for consistent labels
     const legendScale = d3.scaleLinear()
-      .domain(domain)
+      .domain(colorDomain)
       .range([legendHeight, 0]);
 
     const legendAxis = d3.axisRight(legendScale)
