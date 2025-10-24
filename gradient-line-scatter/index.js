@@ -579,7 +579,7 @@ looker.plugins.visualizations.add({
       
       svg.append("text")
         .attr("transform", "rotate(-90)")
-        .attr("y", -41)
+        .attr("y", -(dimensions.margin.left - 15))
         .attr("x", -(dimensions.height / 2))
         .style("text-anchor", "middle")
         .style("font-size", "12px")
